@@ -200,6 +200,8 @@ function thememy_update_themes( $update ) {
 		return;
 
 	$auth_token = thememy_get_token();
+  if ( is_wp_error( $auth_token ) )
+    return;
 
 	$domain_name = thememy_domain_name();
 
