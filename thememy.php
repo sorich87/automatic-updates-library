@@ -106,21 +106,21 @@ function thememy_get_token() {
 	$body = json_decode( wp_remote_retrieve_body( $response ) );
 
 	switch ( $response_code ) {
-		case 400:
-			if ( 20 != $body->code ) {
-				$register_site = thememy_register_site( $email );
-				if ( is_wp_error( $register_site ) )
-					return $register_site;
-			}
+	case 400:
+		if ( 20 != $body->code ) {
+			$register_site = thememy_register_site( $email );
+			if ( is_wp_error( $register_site ) )
+				return $register_site;
+		}
 
-			return new WP_Error( 'unconfirmed_domain', __( 'Please check your email for a message to confirm your domain name.' ) );
+		return new WP_Error( 'unconfirmed_domain', __( 'Please check your email for a message to confirm your domain name.' ) );
 
-		case 200:
-			return $body->token;
+	case 200:
+		return $body->token;
 
-		default:
-			$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
-			return new WP_Error( 'invalid_response', $message );
+	default:
+		$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
+		return new WP_Error( 'invalid_response', $message );
 	}
 }
 
@@ -175,16 +175,16 @@ function thememy_register_site() {
 	$body = json_decode( wp_remote_retrieve_body( $response ) );
 
 	switch ( $response_code ) {
-		case 400:
-			$message = sprintf( __( 'One or more errors occured: %s' ), implode( ', ', $body->errors ) );
-			return new WP_Error( 'remote_error', $message );
+	case 400:
+		$message = sprintf( __( 'One or more errors occured: %s' ), implode( ', ', $body->errors ) );
+		return new WP_Error( 'remote_error', $message );
 
-		case 200:
-			return true;
+	case 200:
+		return true;
 
-		default:
-			$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
-			return new WP_Error( 'invalid_response', $message );
+	default:
+		$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
+		return new WP_Error( 'invalid_response', $message );
 	}
 }
 
@@ -200,8 +200,8 @@ function thememy_update_themes( $update ) {
 		return;
 
 	$auth_token = thememy_get_token();
-  if ( is_wp_error( $auth_token ) )
-    return;
+	if ( is_wp_error( $auth_token ) )
+		return;
 
 	$domain_name = thememy_domain_name();
 
