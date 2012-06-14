@@ -1,15 +1,15 @@
 <?php
 /**
- * @package ThemeMY_
+ * @package Automatic_Updates
  * @version 0.1
  */
 /*
-Plugin Name: ThemeMY!
-Plugin URI: http://thememy.com/
-Description: Automatic updates for your themes bought via ThemeMY!
+Plugin Name: Automatic Updates
+Plugin URI: http://push.ly/
+Description: Automatic updates for your themes and plugins securely delivered by Push.ly automatic updates server
 Version: 0.1
-Author: ThemeMY!
-Author URI: http://thememy.com/
+Author: Push.ly
+Author URI: http://push.ly/
 License: GPLv2 or later
  */
 
@@ -29,62 +29,62 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-// Define ThemeMY! API URL
-if ( ! defined( 'THEMEMY_API_URL' ) )
-	define( 'THEMEMY_API_URL', 'thememy.com/api/v1' );
+// Define Push.ly API URL
+if ( ! defined( 'PUSHLY_API_URL' ) )
+	define( 'PUSHLY_API_URL', 'push.ly/api/v1' );
 
-if ( ! defined( 'THEMEMY_SECRET' ) )
-	define( 'THEMEMY_SECRET', 'set in wp-content.php for the best security' );
+if ( ! defined( 'PUSHLY_SECRET' ) )
+	define( 'PUSHLY_SECRET', 'set in wp-content.php for the best security' );
 
 /**
- * Return ThemeMY! API URL
+ * Return Push.ly API URL
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_api_url( $path = '' ) {
+function pushly_api_url( $path = '' ) {
 	$scheme = force_ssl_admin() || is_ssl() ? 'https' : 'http';
-	return untrailingslashit( $scheme . '://' . THEMEMY_API_URL . '/' . $path );
+	return untrailingslashit( $scheme . '://' . PUSHLY_API_URL . '/' . $path );
 }
 
 /**
  * Return website email
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_email() {
-	return get_option( 'thememy_email' );
+function pushly_email() {
+	return get_option( 'pushly_email' );
 }
 
 /**
  * Return website domain name
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_domain_name() {
+function pushly_domain_name() {
 	return parse_url( site_url(), PHP_URL_HOST );
 }
 
 /**
  * Return website secret key
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_secret_key() {
-	return wp_hash( THEMEMY_SECRET );
+function pushly_secret_key() {
+	return wp_hash( PUSHLY_SECRET );
 }
 
 /**
- * Return authentication token for ThemeMY! API
+ * Return authentication token for Push.ly API
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_get_token() {
-	$email = thememy_email();
-	$domain_name = thememy_domain_name();
-	$secret_key = thememy_secret_key();
+function pushly_get_token() {
+	$email = pushly_email();
+	$domain_name = pushly_domain_name();
+	$secret_key = pushly_secret_key();
 
 	$body = compact( 'email', 'domain_name', 'secret_key' );
-	$url = thememy_api_url( 'tokens' );
+	$url = pushly_api_url( 'tokens' );
 
 	$args = array(
 		'headers' => array(
@@ -106,7 +106,7 @@ function thememy_get_token() {
 	switch ( $response_code ) {
 	case 400:
 		if ( 20 != $body->code ) {
-			$register_site = thememy_register_site( $email );
+			$register_site = pushly_register_site( $email );
 			if ( is_wp_error( $register_site ) )
 				return $register_site;
 		}
@@ -125,10 +125,10 @@ function thememy_get_token() {
 /**
  * Send a non blocking request with small timeout value to delete authentication token
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_delete_token( $token ) {
-	$url = thememy_api_url( "tokens/$token" );
+function pushly_delete_token( $token ) {
+	$url = pushly_api_url( "tokens/$token" );
 
 	$args = array(
 		'method' => 'DELETE',
@@ -143,17 +143,17 @@ function thememy_delete_token( $token ) {
 }
 
 /**
- * Register the site with ThemeMY!
+ * Register the site with Push.ly
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_register_site() {
-	$email = thememy_email();
-	$domain_name = thememy_domain_name();
-	$secret_key = thememy_secret_key();
+function pushly_register_site() {
+	$email = pushly_email();
+	$domain_name = pushly_domain_name();
+	$secret_key = pushly_secret_key();
 
 	$body = compact( 'email', 'domain_name', 'secret_key' );
-	$url = thememy_api_url( 'sites' );
+	$url = pushly_api_url( 'sites' );
 
 	$args = array(
 		'headers' => array(
@@ -189,19 +189,19 @@ function thememy_register_site() {
 /**
  * Check for themes updates
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_update_themes( $update ) {
+function pushly_update_themes( $update ) {
 	global $wp_version;
 
 	if ( empty( $update->checked ) )
 		return;
 
-	$auth_token = thememy_get_token();
+	$auth_token = pushly_get_token();
 	if ( is_wp_error( $auth_token ) )
 		return;
 
-	$domain_name = thememy_domain_name();
+	$domain_name = pushly_domain_name();
 
 	$themes = array();
 	$current_theme = get_option( 'stylesheet' );
@@ -221,7 +221,7 @@ function thememy_update_themes( $update ) {
 
 	$body = compact( 'auth_token', 'domain_name', 'themes' );
 
-	$url = thememy_api_url( 'sites/themes' );
+	$url = pushly_api_url( 'sites/themes' );
 
 	$args = array(
 		'headers' => array(
@@ -244,27 +244,27 @@ function thememy_update_themes( $update ) {
 
 	return $update;
 }
-add_filter( 'pre_set_site_transient_update_themes', 'thememy_update_themes' );
+add_filter( 'pre_set_site_transient_update_themes', 'pushly_update_themes' );
 
 /**
  * When debugging, check for updates on every request
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_update_debug() {
-	if ( defined( 'THEMEMY_DEBUG' ) && THEMEMY_DEBUG )
+function pushly_update_debug() {
+	if ( defined( 'PUSHLY_DEBUG' ) && PUSHLY_DEBUG )
 		set_site_transient( 'update_themes', null );
 }
-add_action( 'init', 'thememy_update_debug' );
+add_action( 'init', 'pushly_update_debug' );
 
 /**
  * Load admin page
  *
- * @since ThemeMY! 0.1
+ * @since Automatic Updates 0.1
  */
-function thememy_admin() {
+function pushly_admin() {
 	if ( is_admin() )
 		include plugin_dir_path( __FILE__ ) . 'admin.php';
 }
-add_action( 'init', 'thememy_admin' );
+add_action( 'init', 'pushly_admin' );
 
