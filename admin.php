@@ -29,7 +29,7 @@ function pushly_options_page() {
 	$token = pushly_get_token();
 	if ( is_wp_error( $token ) )
 		echo '<div class="error"><p><strong>' . $token->get_error_message() . '</strong></p></div>';
-	else
+	elseif ( $token )
 		pushly_delete_token( $token );
 
 	$email = get_option( 'pushly_email' );
@@ -68,6 +68,8 @@ function pushly_email_validate( $email ) {
 		add_settings_error( 'pushly_email', 'invalid_email', __( 'Please enter a valid email.' ) );
 		return '';
 	}
+
+	pushly_register_site();
 
 	return $email;
 }

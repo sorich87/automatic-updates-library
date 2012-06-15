@@ -79,7 +79,9 @@ function pushly_secret_key() {
  * @since Automatic Updates 0.1
  */
 function pushly_get_token() {
-	$email = pushly_email();
+	if ( ! $email = pushly_email() )
+		return;
+
 	$domain_name = pushly_domain_name();
 	$secret_key = pushly_secret_key();
 
@@ -104,21 +106,15 @@ function pushly_get_token() {
 	$body = json_decode( wp_remote_retrieve_body( $response ) );
 
 	switch ( $response_code ) {
-	case 400:
-		if ( 20 != $body->code ) {
-			$register_site = pushly_register_site( $email );
-			if ( is_wp_error( $register_site ) )
-				return $register_site;
-		}
+		case 400:
+			return new WP_Error( 'unconfirmed_domain', __( 'Please check your email for a message to confirm your domain name.' ) );
 
-		return new WP_Error( 'unconfirmed_domain', __( 'Please check your email for a message to confirm your domain name.' ) );
+		case 200:
+			return $body->token;
 
-	case 200:
-		return $body->token;
-
-	default:
-		$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
-		return new WP_Error( 'invalid_response', $message );
+		default:
+			$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
+			return new WP_Error( 'invalid_response', $message );
 	}
 }
 
@@ -148,7 +144,9 @@ function pushly_delete_token( $token ) {
  * @since Automatic Updates 0.1
  */
 function pushly_register_site() {
-	$email = pushly_email();
+	if ( ! $email = pushly_email() )
+		return;
+
 	$domain_name = pushly_domain_name();
 	$secret_key = pushly_secret_key();
 
@@ -173,16 +171,19 @@ function pushly_register_site() {
 	$body = json_decode( wp_remote_retrieve_body( $response ) );
 
 	switch ( $response_code ) {
-	case 400:
-		$message = sprintf( __( 'One or more errors occured: %s' ), implode( ', ', $body->errors ) );
-		return new WP_Error( 'remote_error', $message );
+		case 400:
+			if ( 22 != $body['code'] ) {
+				$message = sprintf( __( 'One or more errors occured: %s' ), implode( ', ', $body->errors ) );
+				return new WP_Error( 'remote_error', $message );
+			}
+			break;
 
-	case 200:
-		return true;
+		case 200:
+			return true;
 
-	default:
-		$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
-		return new WP_Error( 'invalid_response', $message );
+		default:
+			$message = sprintf( __( 'The updates server returned an invalid reponse: %s' ), wp_remote_retrieve_response_message( $response ) );
+			return new WP_Error( 'invalid_response', $message );
 	}
 }
 
