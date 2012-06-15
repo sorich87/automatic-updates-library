@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 // Define Push.ly API URL
 if ( ! defined( 'PUSHLY_API_URL' ) )
-	define( 'PUSHLY_API_URL', 'push.ly/api/v1' );
+	define( 'PUSHLY_API_URL', 'app.push.ly/api/v1' );
 
 if ( ! defined( 'PUSHLY_SECRET' ) )
 	define( 'PUSHLY_SECRET', 'set in wp-content.php for the best security' );
