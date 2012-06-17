@@ -188,6 +188,58 @@ function pushly_register_site() {
 }
 
 /**
+ * Check for plugins updates
+ *
+ * @since Automatic Updates 0.1
+ */
+function pushly_update_plugins( $update ) {
+	global $wp_version;
+
+	if ( empty( $update->checked ) )
+		return $update;
+
+	$auth_token = pushly_get_token();
+
+	if ( is_wp_error( $auth_token ) )
+		return;
+
+	$domain_name = pushly_domain_name();
+
+	if ( ! function_exists( 'get_plugins' ) )
+		require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+
+	$plugins = get_plugins();
+	$active_plugins  = get_option( 'active_plugins', array() );
+
+	$body = compact( 'auth_token', 'domain_name', 'plugins', 'active_plugins' );
+
+	$url = pushly_api_url( 'sites/update-check' );
+
+	$args = array(
+		'headers' => array(
+			'Content-Type' => 'application/json'
+		),
+		'body' => json_encode( $body ),
+		'sslverify' => false,
+		'timeout' => ( ( defined('DOING_CRON') && DOING_CRON ) ? 30 : 3),
+		'user-agent'	=> 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
+	);
+
+	$raw_response = wp_remote_get( $url, $args );
+
+	pushly_delete_token( $auth_token );
+
+	if ( ! is_wp_error( $raw_response ) && 200 == wp_remote_retrieve_response_code( $raw_response ) )
+		$response = json_decode( wp_remote_retrieve_body( $raw_response ), true );
+
+	if ( ! empty( $response ) )
+		$update->response = array_merge( $update->response, $response );
+
+	return $update;
+}
+add_filter( 'pre_set_site_transient_update_plugins', 'pushly_update_plugins' );
+
+/**
  * Check for themes updates
  *
  * @since Automatic Updates 0.1
@@ -196,7 +248,7 @@ function pushly_update_themes( $update ) {
 	global $wp_version;
 
 	if ( empty( $update->checked ) )
-		return;
+		return $update;
 
 	$auth_token = pushly_get_token();
 	if ( is_wp_error( $auth_token ) )
@@ -220,9 +272,9 @@ function pushly_update_themes( $update ) {
 		);
 	}
 
-	$body = compact( 'auth_token', 'domain_name', 'themes' );
+	$body = compact( 'auth_token', 'domain_name', 'themes', 'current_theme' );
 
-	$url = pushly_api_url( 'sites/themes' );
+	$url = pushly_api_url( 'sites/update-check' );
 
 	$args = array(
 		'headers' => array(
@@ -236,9 +288,10 @@ function pushly_update_themes( $update ) {
 
 	$raw_response = wp_remote_get( $url, $args );
 
+	pushly_delete_token( $auth_token );
+
 	if ( ! is_wp_error( $raw_response ) && 200 == wp_remote_retrieve_response_code( $raw_response ) )
 		$response = json_decode( wp_remote_retrieve_body( $raw_response ), true );
-	$new_update = new stdClass;
 
 	if ( ! empty( $response ) )
 		$update->response = array_merge( $update->response, $response );
@@ -253,8 +306,11 @@ add_filter( 'pre_set_site_transient_update_themes', 'pushly_update_themes' );
  * @since Automatic Updates 0.1
  */
 function pushly_update_debug() {
-	if ( defined( 'PUSHLY_DEBUG' ) && PUSHLY_DEBUG )
-		set_site_transient( 'update_themes', null );
+	if ( ! defined( 'PUSHLY_DEBUG' ) || ! PUSHLY_DEBUG )
+		return;
+
+	set_site_transient( 'update_plugins', null );
+	set_site_transient( 'update_themes', null );
 }
 add_action( 'init', 'pushly_update_debug' );
 
