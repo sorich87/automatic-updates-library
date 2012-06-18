@@ -29,8 +29,6 @@ function pushly_options_page() {
 	$token = pushly_get_token();
 	if ( is_wp_error( $token ) )
 		echo '<div class="error"><p><strong>' . $token->get_error_message() . '</strong></p></div>';
-	elseif ( $token )
-		pushly_delete_token( $token );
 
 	$email = get_option( 'pushly_email' );
 ?>

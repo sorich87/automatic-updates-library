@@ -82,6 +82,16 @@ function pushly_get_token() {
 	if ( ! $email = pushly_email() )
 		return;
 
+	$token = get_option( 'pushly_auth_token' );
+
+	if ( $token ) {
+		if ( time() - $token['time'] < 3600 )
+			return $token;
+
+		pushly_delete_token( $token );
+		delete_option( 'pushly_auth_token' );
+	}
+
 	$domain_name = pushly_domain_name();
 	$secret_key = pushly_secret_key();
 
@@ -110,6 +120,7 @@ function pushly_get_token() {
 			return new WP_Error( 'unconfirmed_domain', __( 'Please check your email for a message to confirm your domain name.' ) );
 
 		case 200:
+			update_option( 'pushly_auth_token', $body->token );
 			return $body->token;
 
 		default:
@@ -213,7 +224,7 @@ function pushly_update_plugins( $update ) {
 
 	$body = compact( 'auth_token', 'domain_name', 'plugins', 'active_plugins' );
 
-	$url = pushly_api_url( 'sites/update-check' );
+	$url = pushly_api_url( 'plugins/update-check' );
 
 	$args = array(
 		'headers' => array(
@@ -227,13 +238,12 @@ function pushly_update_plugins( $update ) {
 
 	$raw_response = wp_remote_get( $url, $args );
 
-	pushly_delete_token( $auth_token );
-
 	if ( ! is_wp_error( $raw_response ) && 200 == wp_remote_retrieve_response_code( $raw_response ) )
-		$response = json_decode( wp_remote_retrieve_body( $raw_response ), true );
+		$response = (array) json_decode( wp_remote_retrieve_body( $raw_response ) );
 
-	if ( ! empty( $response ) )
+	if ( ! empty( $response ) ) {
 		$update->response = array_merge( $update->response, $response );
+	}
 
 	return $update;
 }
@@ -251,6 +261,7 @@ function pushly_update_themes( $update ) {
 		return $update;
 
 	$auth_token = pushly_get_token();
+
 	if ( is_wp_error( $auth_token ) )
 		return;
 
@@ -274,7 +285,7 @@ function pushly_update_themes( $update ) {
 
 	$body = compact( 'auth_token', 'domain_name', 'themes', 'current_theme' );
 
-	$url = pushly_api_url( 'sites/update-check' );
+	$url = pushly_api_url( 'themes/update-check' );
 
 	$args = array(
 		'headers' => array(
@@ -288,8 +299,6 @@ function pushly_update_themes( $update ) {
 
 	$raw_response = wp_remote_get( $url, $args );
 
-	pushly_delete_token( $auth_token );
-
 	if ( ! is_wp_error( $raw_response ) && 200 == wp_remote_retrieve_response_code( $raw_response ) )
 		$response = json_decode( wp_remote_retrieve_body( $raw_response ), true );
 
@@ -299,6 +308,96 @@ function pushly_update_themes( $update ) {
 	return $update;
 }
 add_filter( 'pre_set_site_transient_update_themes', 'pushly_update_themes' );
+
+/**
+ * Get plugin information
+ *
+ * @since Automatic Updates 0.1
+ */
+function pushly_get_plugin_info( $def, $action, $args ) {
+	global $wp_version;
+
+	if ( empty( $args->slug ) )
+		return false;
+
+	$auth_token = pushly_get_token();
+
+	if ( is_wp_error( $auth_token ) )
+		return;
+
+	$domain_name = pushly_domain_name();
+
+	$body = compact( 'auth_token', 'domain_name' );
+
+	$url = pushly_api_url( "plugins/$args->slug" );
+
+	$args = array(
+		'headers' => array(
+			'Content-Type' => 'application/json'
+		),
+		'body' => json_encode( $body ),
+		'sslverify' => false,
+		'timeout' => 15,
+		'user-agent'	=> 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
+	);
+	$request = wp_remote_get( $url, $args );
+
+	if ( is_wp_error( $request ) ) {
+		$res = new WP_Error( 'plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $request->get_error_message() );
+	} else {
+		$res = (object) json_decode( wp_remote_retrieve_body( $request ), true );
+		if ( ! is_object( $res ) && ! is_array( $res ) )
+			$res = new WP_Error('plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $res );
+	}
+
+	return $res;
+}
+add_filter( 'plugins_api', 'pushly_get_plugin_info', 10, 3 );
+
+/**
+ * Get theme information
+ *
+ * @since Automatic Updates 0.1
+ */
+function pushly_get_theme_info( $def, $action, $args ) {
+	global $wp_version;
+
+	if ( empty( $args->slug ) )
+		return false;
+
+	$auth_token = pushly_get_token();
+
+	if ( is_wp_error( $auth_token ) )
+		return;
+
+	$domain_name = pushly_domain_name();
+
+	$body = compact( 'auth_token', 'domain_name' );
+
+	$url = pushly_api_url( "themes/$args->slug" );
+
+	$args = array(
+		'headers' => array(
+			'Content-Type' => 'application/json'
+		),
+		'body' => json_encode( $body ),
+		'sslverify' => false,
+		'timeout' => 15,
+		'user-agent'	=> 'WordPress/' . $wp_version . '; ' . get_bloginfo( 'url' )
+	);
+	$request = wp_remote_get( $url, $args );
+
+	if ( is_wp_error( $request ) ) {
+		$res = new WP_Error( 'themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $request->get_error_message() );
+	} else {
+		$res = (object) json_decode( wp_remote_retrieve_body( $request ), true );
+		if ( ! is_object( $res ) && ! is_array( $res ) )
+			$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $res );
+	}
+
+	return $res;
+}
+add_filter( 'plugins_api', 'pushly_get_theme_info', 10, 3 );
 
 /**
  * When debugging, check for updates on every request
