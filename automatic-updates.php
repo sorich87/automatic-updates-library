@@ -183,7 +183,7 @@ function pushly_register_site() {
 
 	switch ( $response_code ) {
 		case 400:
-			if ( 22 != $body['code'] ) {
+			if ( 22 != $body->code ) {
 				$message = sprintf( __( 'One or more errors occured: %s' ), implode( ', ', $body->errors ) );
 				return new WP_Error( 'remote_error', $message );
 			}
