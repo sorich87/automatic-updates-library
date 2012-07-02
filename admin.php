@@ -26,9 +26,7 @@ add_action( 'admin_init', 'pushly_options_init' );
  * @since Automatic Updates 0.1
  */
 function pushly_options_page() {
-	$token = pushly_get_token();
-	if ( is_wp_error( $token ) )
-		echo '<div class="error"><p><strong>' . $token->get_error_message() . '</strong></p></div>';
+	pushly_ping();
 
 	$email = get_option( 'pushly_email' );
 ?>
@@ -71,19 +69,6 @@ function pushly_email_validate( $email ) {
 
 	return $email;
 }
-
-/**
- * Add link to options page as plugin action link
- *
- * @since Automatic Updates 0.1
- */
-function pushly_plugin_action_links( $links, $file ) {
-	if ( plugin_basename( dirname( __FILE__ ) . '/automatic-updates.php' ) == $file )
-		$links[] = '<a href="admin.php?page=pushly-options">' . __( 'Settings' ) . '</a>';
-
-	return $links;
-}
-add_filter( 'plugin_action_links', 'pushly_plugin_action_links', 10, 2 );
 
 /**
  * Show admin notice when the plugin options are empty
