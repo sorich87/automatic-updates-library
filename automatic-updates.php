@@ -318,12 +318,12 @@ function pushly_get_plugin_info( $def, $action, $args ) {
 	global $wp_version;
 
 	if ( empty( $args->slug ) )
-		return false;
+		return $def;
 
 	$auth_token = pushly_get_token();
 
 	if ( is_wp_error( $auth_token ) )
-		return;
+		return $def;
 
 	$domain_name = pushly_domain_name();
 
@@ -345,12 +345,12 @@ function pushly_get_plugin_info( $def, $action, $args ) {
 	if ( is_wp_error( $request ) ) {
 		$res = new WP_Error( 'plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $request->get_error_message() );
 	} else {
-		$res = (object) json_decode( wp_remote_retrieve_body( $request ), true );
-		if ( ! is_object( $res ) && ! is_array( $res ) )
-			$res = new WP_Error('plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $res );
+		$res = json_decode( wp_remote_retrieve_body( $request ), true );
+		if ( 200 != wp_remote_retrieve_response_code( $request ) )
+			$res = new WP_Error('plugins_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $res->message );
 	}
 
-	return $res;
+	return empty( $res ) ? $def : (object) $res;
 }
 add_filter( 'plugins_api', 'pushly_get_plugin_info', 10, 3 );
 
@@ -363,12 +363,12 @@ function pushly_get_theme_info( $def, $action, $args ) {
 	global $wp_version;
 
 	if ( empty( $args->slug ) )
-		return false;
+		return $def;
 
 	$auth_token = pushly_get_token();
 
 	if ( is_wp_error( $auth_token ) )
-		return;
+		return $def;
 
 	$domain_name = pushly_domain_name();
 
@@ -390,14 +390,14 @@ function pushly_get_theme_info( $def, $action, $args ) {
 	if ( is_wp_error( $request ) ) {
 		$res = new WP_Error( 'themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $request->get_error_message() );
 	} else {
-		$res = (object) json_decode( wp_remote_retrieve_body( $request ), true );
-		if ( ! is_object( $res ) && ! is_array( $res ) )
+		$res = json_decode( wp_remote_retrieve_body( $request ), true );
+		if ( 200 != wp_remote_retrieve_response_code( $request ) )
 			$res = new WP_Error('themes_api_failed', __( 'An unexpected error occurred. Something may be wrong with Push.ly or this server&#8217;s configuration.' ), $res );
 	}
 
-	return $res;
+	return empty( $res ) ? $def : (object) $res;
 }
-add_filter( 'plugins_api', 'pushly_get_theme_info', 10, 3 );
+add_filter( 'themes_api', 'pushly_get_theme_info', 10, 3 );
 
 /**
  * When debugging, check for updates on every request
