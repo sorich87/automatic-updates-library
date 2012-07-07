@@ -13,18 +13,22 @@ Usage
 2. Put the library directory in your plugin or theme directory and include
 the init file:
 
-	include( get_template_directory() . '/automatic-updates/init.php' );
+```php
+include( get_template_directory() . '/automatic-updates/init.php' );
+```
 
 3. Add a field on your plugin settings page or your theme options
 page where users will enter their email and make it save to the option
 `pushly_email`, or simply use the default settings page:
 
-	// Rename this function to avoid conflict with other themes or plugins
-	function test_admin() {
-		if ( is_admin() )
-			include( get_template_directory() . '/automatic-updates/admin.php' );
-	}
-	add_action( 'init', 'test_admin' );
+```php
+// Rename this function to avoid conflict with other themes or plugins
+function test_admin() {
+	if ( is_admin() )
+		include( get_template_directory() . '/automatic-updates/admin.php' );
+}
+add_action( 'init', 'test_admin' );
+```
 
 
 Contributing
