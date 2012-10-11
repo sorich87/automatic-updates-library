@@ -1,3 +1,7 @@
+ATTENTION: This repository is not maintained anymore.
+It's the client library for a discontinued project: an automatic updates server for WordPress plugin and themes.
+Feel free to borrow the code though. ;)
+
 Push.ly Automatic Updates
 =========================
 
